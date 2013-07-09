@@ -1475,11 +1475,15 @@ apr_byte_t isValidCASTicket(request_rec *r, cas_cfg *c, char *ticket, char **use
 												}
 												if(attr != NULL) {
 													const char *attr_name = attr->value;
+													if(c->CASDebug)
+														ap_log_rerror(APLOG_MARK, APLOG_DEBUG, 0, r, "parsing attribute %s", attr_name);
 													apr_xml_elem *attr_node = as_node->first_child;
 													while(attr_node != NULL) {  // For each child element...
 														if(apr_strnatcmp(attr_node->name, "AttributeValue") == 0) {
 															const char *attr_value = NULL;
 															apr_xml_to_text(r->pool, attr_node, APR_XML_X2T_INNER, NULL, NULL, &attr_value, NULL);
+															if(c->CASDebug)
+																ap_log_rerror(APLOG_MARK, APLOG_DEBUG, 0, r, "%s=%s", attr_name, attr_value);
 															cas_attr_builder_add(builder, attr_name, attr_value);
 														}
 														attr_node = attr_node->next;
@@ -1982,6 +1986,8 @@ int cas_authenticate(request_rec *r)
 	/* now, handle when a ticket is present (this will also catch gateway users since ticket != NULL on their trip back) */
 	if(ticket != NULL) {
 		if(isValidCASTicket(r, c, ticket, &remoteUser, &attrs)) {
+			if(c->CASDebug)
+				ap_log_rerror(APLOG_MARK, APLOG_INFO, 0, r, "Successfully authenticated ticket %s for user %s", ticket, remoteUser);
 			cookieString = createCASCookie(r, remoteUser, attrs, ticket);
 
 			/* if there was an error writing the cookie info to the file system */
